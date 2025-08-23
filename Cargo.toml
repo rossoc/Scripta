@@ -17,3 +17,4 @@ thiserror = "2.0.11"
 tokio = { version = "1", features = ["full"] }
 futures = "0.3.31"
 clap = { version = "4.5.45", features = ["derive"] }
+pathdiff = "0.2.3"

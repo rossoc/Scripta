@@ -44,16 +44,21 @@ use crate::watcher::exec_on_event;
 use crate::write::open_note;
 use args::Args;
 use clap::Parser;
+use std::path::PathBuf;
 use tokio::signal;
 use tokio::task::spawn;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
-    let args = Args::parse();
+    let mut args = Args::parse();
 
     if args.write != std::path::PathBuf::from("/") {
         return open_note(args.write);
     }
+
+    std::env::set_current_dir(&args.src)?;
+    args.out = pathdiff::diff_paths(&args.out, &args.src).expect("Cannot create relative path");
+    args.src = PathBuf::from("./");
 
     match make_site(&args.src, &args.out) {
         Ok(time) => println!("{}", time),
