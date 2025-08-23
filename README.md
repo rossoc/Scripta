@@ -1,6 +1,6 @@
-# Charta
+# Scripta
 
-Charta converts a directory of Markdown files to HTML files.
+Scripta converts a directory of Markdown files to HTML files.
 The source directory is ignored, so you can have a `readme.md` as this one and 
 an `index.html`. It recurses in every sub-directory.
 

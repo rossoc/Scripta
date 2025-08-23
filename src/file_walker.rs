@@ -73,7 +73,10 @@ pub fn files_walker(source_folder: &PathBuf) -> Result<Vec<PathBuf>, Error> {
 /// Given the name of a layout (template), it returns the content.
 pub fn read_layout(name: &str) -> Result<String, Error> {
     let mut path = PathBuf::from("layout");
-    path.canonicalize()?;
+    path = match path.canonicalize() {
+        Ok(p) => p,
+        Err(_) => return Err(Error::MissingLayout(name.to_string())),
+    };
     path.push(name.to_string() + ".html");
     match read_to_string(path) {
         Ok(layout) => Ok(layout),
