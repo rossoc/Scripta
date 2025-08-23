@@ -23,7 +23,7 @@ pub fn path_to_str(dir: &PathBuf) -> String {
 /// otherwise.
 pub fn should_include(path: &PathBuf) -> bool {
     let ignoring = [
-        "charta",
+        "scripta",
         "layout",
         "target",
         "src",
