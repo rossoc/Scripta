@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 const HEADER: &str = "---
 title: Log
-layout: note
+layout: page
 author: Carlo Rosso
 date: {{ date }}
 ---\n";
