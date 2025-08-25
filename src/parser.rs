@@ -160,8 +160,7 @@ pub fn make_site(src: &PathBuf, out: &PathBuf) -> Result<String, Error> {
     let src = &src.canonicalize()?;
     let out = &out.canonicalize()?;
 
-    let mut dirs = dirs_walker(src)?;
-    dirs.pop();
+    let dirs = dirs_walker(src)?;
 
     for dir in dirs {
         make_collection(&dir, src, out)?;
