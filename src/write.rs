@@ -2,7 +2,7 @@ use std::io::{Error, Write};
 use std::path::PathBuf;
 
 const HEADER: &str = "---
-title: Log
+title: {{ today }}
 layout: page
 author: Carlo Rosso
 date: {{ date }}
@@ -17,8 +17,11 @@ pub fn open_note(mut path: PathBuf) -> Result<(), Error> {
 
     path.push(date.to_owned() + ".md");
     if !path.exists() {
+        let today = chrono::Local::now().format("%d/%m").to_string();
         let mut file = std::fs::File::create(&path)?;
-        let content = HEADER.replace("{{ date }}", &date);
+        let content = HEADER
+            .replace("{{ date }}", &date)
+            .replace("{{ today }}", &today);
         file.write_all(content.as_bytes())?;
     }
 
