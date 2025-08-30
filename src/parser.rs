@@ -66,6 +66,16 @@ fn make_links(links: &Vec<(PathBuf, PathBuf)>) -> String {
         .fold(String::new(), |acc, link| acc + &link)
 }
 
+/// Generates the list of links of a collection formatted as an HTML list.
+/// It's used to set the placeholder `{{ links.rev }}`.
+fn make_links_rev(links: &Vec<(PathBuf, PathBuf)>) -> String {
+    links
+        .iter()
+        .filter(|(from, to)| file_name(to) != "index.html" && file_name(from) != "")
+        .filter_map(|dir| make_link(dir).ok())
+        .fold(String::new(), |acc, link| acc + &link)
+}
+
 /// Given source and destination, and the variables, produces the output HTML
 /// in the specified folder.
 ///
@@ -117,6 +127,7 @@ pub fn make_collection(dir: &PathBuf, src: &PathBuf, out: &PathBuf) -> Result<()
     vars.insert("base-path", compute_base_path(dir, src)?);
     vars.insert("folder", file_name(dir));
     vars.insert("links", make_links(&dirs));
+    vars.insert("links-rev", make_links_rev(&dirs));
 
     for i in 1..dirs.len() - 1 {
         vars.insert("next-page", path_to_str(&dirs[i - 1].1));
