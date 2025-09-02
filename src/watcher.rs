@@ -1,11 +1,11 @@
-use crate::file_walker::{dirs_walker, files_walker, should_include};
-use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Result, Watcher};
+use crate::file_walker::{dirs_walker, should_include};
+use notify::{Config, RecommendedWatcher, RecursiveMode, Result, Watcher};
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
-pub fn exec_on_event<F>(src: &PathBuf, f: &F) -> Result<()>
+pub fn watch_dir<F>(src: &PathBuf, f: &F) -> Result<()>
 where
-    F: Fn(Event) -> (),
+    F: Fn() -> (),
 {
     // Create a watcher
     let (tx, rx) = std::sync::mpsc::channel();
@@ -15,11 +15,11 @@ where
     dirs_walker(src)
         .unwrap()
         .iter()
-        .filter_map(|dir| files_walker(dir).ok())
-        .flatten()
         .for_each(|p| watcher.watch(&p, RecursiveMode::NonRecursive).unwrap());
 
     println!("Watching directory: {:?}", src);
+    let debounce_duration = Duration::from_millis(100);
+    let mut last_trigged = Instant::now();
 
     // Listen for events
     for event in rx {
@@ -27,8 +27,10 @@ where
             Ok(event) => {
                 if event.paths.iter().any(|p| should_include(p))
                     && (event.kind.is_create() || event.kind.is_modify() || event.kind.is_remove())
+                    && Instant::now().duration_since(last_trigged) > debounce_duration
                 {
-                    f(event)
+                    f();
+                    last_trigged = Instant::now();
                 }
             }
             Err(e) => println!("{}", e),

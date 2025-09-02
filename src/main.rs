@@ -40,7 +40,7 @@ mod watcher;
 mod write;
 use crate::parser::make_site;
 use crate::serve::serve_directory;
-use crate::watcher::exec_on_event;
+use crate::watcher::watch_dir;
 use crate::write::open_note;
 use clap::Parser;
 use cli::Cli;
@@ -68,7 +68,7 @@ async fn main() -> Result<(), std::io::Error> {
             let target = args.src.to_owned();
             let dest = args.out.to_owned();
 
-            let compile_fn = move |_| {
+            let compile_fn = move || {
                 match make_site(&target, &dest) {
                     Ok(time) => println!("{}", time),
                     Err(e) => println!("{}", e),
@@ -80,7 +80,7 @@ async fn main() -> Result<(), std::io::Error> {
                 let mut res = spawn(async {});
                 if args.watch {
                     res = spawn(async move {
-                         exec_on_event(&args.src, &compile_fn).unwrap();
+                         watch_dir(&args.src, &compile_fn).unwrap();
                     });
                 }
 
