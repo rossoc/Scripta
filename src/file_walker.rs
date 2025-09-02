@@ -1,18 +1,19 @@
 use crate::error::Error;
 use std::fs::{copy, create_dir_all, read_dir, read_to_string};
 use std::iter::once;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Gets the file_name of the path and returns it as string
-pub fn file_name(dir: &PathBuf) -> String {
-    match dir.file_name() {
-        Some(name) => path_to_str(&name.into()),
-        None => "".to_string(),
-    }
+pub fn file_name(dir: &Path) -> String {
+    dir.file_name()
+        .unwrap_or(std::ffi::OsStr::new(""))
+        .to_str()
+        .unwrap_or("")
+        .to_owned()
 }
 
 /// Convert a path to string, very similar to debug
-pub fn path_to_str(dir: &PathBuf) -> String {
+pub fn path_to_str(dir: &Path) -> String {
     match dir.to_str() {
         Some(res) => res.to_string(),
         None => "".to_string(),
@@ -38,7 +39,7 @@ pub fn should_include(path: &PathBuf) -> bool {
     .map(|e| e.to_string())
     .collect::<Vec<_>>();
 
-    !ignoring.contains(&file_name(&path))
+    !ignoring.contains(&file_name(path))
 }
 
 /// Given a directory, returns such directory and all
@@ -52,7 +53,7 @@ pub fn dirs_walker(source_dir: &PathBuf) -> Result<Vec<PathBuf>, Error> {
     let res = read_dir(source_dir)?
         .filter_map(|e| e.ok())
         .filter_map(|e| e.path().canonicalize().ok())
-        .filter(|e| should_include(e))
+        .filter(should_include)
         .filter_map(|e| dirs_walker(&e).ok())
         .flatten()
         .chain(once(src.canonicalize()?))

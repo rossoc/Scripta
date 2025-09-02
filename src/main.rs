@@ -47,6 +47,7 @@ use cli::Cli;
 use std::path::PathBuf;
 use tokio::signal;
 use tokio::task::spawn;
+use tokio::task::JoinHandle;
 
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
@@ -60,37 +61,37 @@ async fn main() -> Result<(), std::io::Error> {
                 pathdiff::diff_paths(&args.out, &args.src).expect("Cannot create relative path");
             args.src = PathBuf::from("./");
 
-            match make_site(&args.src, &args.out) {
-                Ok(time) => println!("{}", time),
-                Err(e) => println!("{}", e),
-            };
-
             let target = args.src.to_owned();
             let dest = args.out.to_owned();
-
             let compile_fn = move || {
                 match make_site(&target, &dest) {
-                    Ok(time) => println!("{}", time),
-                    Err(e) => println!("{}", e),
+                    Ok(time) => println!("{time}"),
+                    Err(e) => println!("{e}"),
                 };
             };
 
+            compile_fn();
+
             tokio::select! {
             _ = async {
-                let mut res = spawn(async {});
+                let mut threads: Vec<JoinHandle<()>> = vec![];
                 if args.watch {
-                    res = spawn(async move {
-                         watch_dir(&args.src, &compile_fn).unwrap();
-                    });
+                    threads.push(spawn(async move {
+                         watch_dir(&args.src, &compile_fn).unwrap()
+                    }));
                 }
 
                 if args.serve {
                     let addr = ("127.0.0.1", args.port);
                     let dest_cp = args.out.to_owned();
-                    serve_directory(addr, &dest_cp).await;
+                    threads.push(spawn(async move {
+                        serve_directory(addr, &dest_cp)
+                    }));
                 }
 
-                let _ = res.await;
+                for thread in threads {
+                    thread.await.unwrap()
+                }
             } => {},
                 _ = signal::ctrl_c() => {
                     println!("Received Ctrl+C, shutting down...");

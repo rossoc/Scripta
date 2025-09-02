@@ -4,7 +4,7 @@ use crate::file_walker::{copy_dir_all, dirs_walker, file_name, files_walker, pat
 use chrono::Local;
 use std::collections::HashMap;
 use std::fs::{create_dir_all, read_to_string, write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Given a directory and the source, strip the source and
 /// change the name to match the output name.
@@ -12,8 +12,8 @@ use std::path::PathBuf;
 /// In particular if the file is `readme.md` it is converted to `index.html`,
 /// otherwise if the file is a Markdown only the extension is changed to `.html`.
 /// The path returned is relative
-fn compute_out(dir: &PathBuf, src: &PathBuf) -> Result<PathBuf, Error> {
-    let mut res = dir.clone();
+fn compute_out(dir: &Path, src: &PathBuf) -> Result<PathBuf, Error> {
+    let mut res = dir.to_path_buf();
     if file_name(&res).to_lowercase() == "readme.md" {
         res.set_file_name("index.html")
     } else if res.extension().is_some_and(|ext| ext == "md") {
@@ -27,7 +27,7 @@ fn compute_out(dir: &PathBuf, src: &PathBuf) -> Result<PathBuf, Error> {
 
 /// This function is used to set the placeholder `{{ base-path }}` in each
 /// layout.
-fn compute_base_path(dir: &PathBuf, src: &PathBuf) -> Result<String, Error> {
+fn compute_base_path(dir: &Path, src: &PathBuf) -> Result<String, Error> {
     match dir.strip_prefix(src) {
         Ok(res) => Ok(res.iter().fold("./".into(), |acc, _| acc + "../")),
         Err(e) => Err(Error::SplitPrefixUnreachable(e)),
@@ -36,10 +36,10 @@ fn compute_base_path(dir: &PathBuf, src: &PathBuf) -> Result<String, Error> {
 
 fn read_title(src: &PathBuf) -> Option<String> {
     let content = read_to_string(src).ok()?;
-    match content.lines().find(|s| s.starts_with("title:")) {
-        Some(title) => Some(title[6..].trim().to_string()),
-        None => None,
-    }
+    content
+        .lines()
+        .find(|s| s.starts_with("title:"))
+        .map(|title| title[6..].trim().to_string())
 }
 
 /// Format a link for the function [`make_links`]
@@ -57,10 +57,10 @@ fn make_link(dir: &(PathBuf, PathBuf)) -> Result<String, Error> {
 
 /// Generates the list of links of a collection formatted as an HTML list.
 /// It's used to set the placeholder `{{ links }}`.
-fn make_links(links: &Vec<(PathBuf, PathBuf)>) -> String {
+fn make_links(links: &[(PathBuf, PathBuf)]) -> String {
     links
         .iter()
-        .filter(|(from, to)| file_name(to) != "index.html" && file_name(from) != "")
+        .filter(|(from, to)| file_name(to) != "index.html" && !file_name(from).is_empty())
         .filter_map(|dir| make_link(dir).ok())
         .rev()
         .fold(String::new(), |acc, link| acc + &link)
@@ -68,10 +68,10 @@ fn make_links(links: &Vec<(PathBuf, PathBuf)>) -> String {
 
 /// Generates the list of links of a collection formatted as an HTML list.
 /// It's used to set the placeholder `{{ links.rev }}`.
-fn make_links_rev(links: &Vec<(PathBuf, PathBuf)>) -> String {
+fn make_links_rev(links: &[(PathBuf, PathBuf)]) -> String {
     links
         .iter()
-        .filter(|(from, to)| file_name(to) != "index.html" && file_name(from) != "")
+        .filter(|(from, to)| file_name(to) != "index.html" && !file_name(from).is_empty())
         .filter_map(|dir| make_link(dir).ok())
         .fold(String::new(), |acc, link| acc + &link)
 }
@@ -83,11 +83,11 @@ fn make_links_rev(links: &Vec<(PathBuf, PathBuf)>) -> String {
 /// - dirs: a tuple (source, destination)
 /// - vars: HashMap to replace the placeholders `{{ <key> }}`
 pub fn make_page(dirs: (&PathBuf, PathBuf), vars: &HashMap<&str, String>) -> Result<(), Error> {
-    let content = match read_to_string(&dirs.0) {
+    let content = match read_to_string(dirs.0) {
         Ok(c) => Ok(c),
         Err(_) => Err(Error::MissingFile(dirs.0.clone())),
     };
-    match to_html(&content?, &vars) {
+    match to_html(&content?, vars) {
         Ok(content) => Ok(write(&dirs.1, content)?),
         Err(Error::MissingLayoutGeneric) => Err(Error::MissingLayout(path_to_str(dirs.0))),
         Err(Error::SettingsNotFoundGeneric) => Err(Error::SettingsNotFound(path_to_str(dirs.0))),
@@ -103,7 +103,7 @@ pub fn make_page(dirs: (&PathBuf, PathBuf), vars: &HashMap<&str, String>) -> Res
 /// - dir: path to collection's directory in the source
 /// - src: source dir of the site
 /// - out: output dir or the site
-pub fn make_collection(dir: &PathBuf, src: &PathBuf, out: &PathBuf) -> Result<(), Error> {
+pub fn make_collection(dir: &PathBuf, src: &PathBuf, out: &Path) -> Result<(), Error> {
     let output_dir = compute_out(dir, src)?;
     if !output_dir.exists() {
         create_dir_all(&output_dir)?;

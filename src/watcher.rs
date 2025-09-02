@@ -5,19 +5,19 @@ use std::time::{Duration, Instant};
 
 pub fn watch_dir<F>(src: &PathBuf, f: &F) -> Result<()>
 where
-    F: Fn() -> (),
+    F: Fn(),
 {
     // Create a watcher
     let (tx, rx) = std::sync::mpsc::channel();
-    let config = Config::default().with_poll_interval(Duration::from_secs(2).into());
+    let config = Config::default().with_poll_interval(Duration::from_secs(2));
     let mut watcher: RecommendedWatcher = Watcher::new(tx, config)?;
 
     dirs_walker(src)
         .unwrap()
         .iter()
-        .for_each(|p| watcher.watch(&p, RecursiveMode::NonRecursive).unwrap());
+        .for_each(|p| watcher.watch(p, RecursiveMode::NonRecursive).unwrap());
 
-    println!("Watching directory: {:?}", src);
+    println!("Watching directory: {src:?}");
     let debounce_duration = Duration::from_millis(100);
     let mut last_trigged = Instant::now();
 
@@ -25,7 +25,7 @@ where
     for event in rx {
         match event {
             Ok(event) => {
-                if event.paths.iter().any(|p| should_include(p))
+                if event.paths.iter().any(should_include)
                     && (event.kind.is_create() || event.kind.is_modify() || event.kind.is_remove())
                     && Instant::now().duration_since(last_trigged) > debounce_duration
                 {
@@ -33,7 +33,7 @@ where
                     last_trigged = Instant::now();
                 }
             }
-            Err(e) => println!("{}", e),
+            Err(e) => println!("{e}"),
         };
     }
 
