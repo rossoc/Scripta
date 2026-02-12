@@ -27,8 +27,14 @@ pub fn md_to_html(md: &str) -> String {
 /// Input:
 /// - content: the content of the Note
 pub fn read_vars(content: &str) -> Result<HashMap<&str, String>, Error> {
-    let mut pieces = content.splitn(3, "---");
-    pieces.next();
+    let clean_input: &str = if content.starts_with("---") {
+        &content[3..]
+    } else {
+        content
+    };
+
+    let mut pieces = clean_input.splitn(2, "---");
+
     let settings = pieces.next().ok_or(Error::SettingsNotFoundGeneric)?;
     let content = pieces.next().ok_or(Error::ContentNotFoundGeneric)?.trim();
 
@@ -133,13 +139,12 @@ mod tests {
 
         assert_eq!(read_vars(&content).unwrap(), map);
 
+        content = format!("{k1}: {v1}\n{k2}: {v2}\n---\nHello World");
+        assert_eq!(read_vars(&content).unwrap(), map);
+
         content = format!("---\n{k1}: {v1}\n{k2}:{v2}\n---");
         map.insert("content", "".to_string());
         assert_eq!(read_vars(&content).unwrap(), map);
-
-        content = format!("--\n{k1}: {v1}\n{k2}: {v2}\n---");
-        let res = read_vars(&content);
-        assert!(res.is_err());
 
         content = format!("---\n{k1}: {v1}\n{k2}: {v2}\n--");
         let res = read_vars(&content);
