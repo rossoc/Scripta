@@ -36,7 +36,6 @@ Follows the steps through which the website is compiled:
   are going to be substituted in the final html. I.e. 
 
   ```Markdown
-  ---
   title: 24/08
   layout: page
   ---

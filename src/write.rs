@@ -1,8 +1,7 @@
 use std::io::{Error, Write};
 use std::path::PathBuf;
 
-const HEADER: &str = "---
-title: {{ today }}
+const HEADER: &str = "title: {{ today }}
 layout: page
 author: Carlo Rosso
 date: {{ date }}
