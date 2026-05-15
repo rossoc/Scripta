@@ -66,4 +66,4 @@ The site builder is written in Rust, hence, to run the code you can use:
 - `cargo run -- write`: open today's note at the folder, if not existing it is
   created.
 
-If you are in doubt you can always run `-h`, or `--help`.
+If you are in doubt you can always run `--help`.
