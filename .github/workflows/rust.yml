@@ -25,9 +25,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
-          # This looks for the binary in target/release/
-          # Replace 'your_binary_name' with your actual project name
-          files: target/release/your_binary_name
+          files: target/release/Scripta
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
