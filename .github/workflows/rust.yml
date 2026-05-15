@@ -1,0 +1,35 @@
+name: Rust Publish
+
+on:
+  push:
+    tags:
+      - 'v*' # Triggers only when you push a tag starting with 'v'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    # Added permissions to allow the workflow to create releases
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Release
+        run: cargo build --release --verbose
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          # This looks for the binary in target/release/
+          # Replace 'your_binary_name' with your actual project name
+          files: target/release/your_binary_name
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
